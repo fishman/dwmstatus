@@ -28,7 +28,7 @@
 #define BAT_FULL_FILE "/sys/class/power_supply/BAT0/charge_full"
 #define BAT_STATUS_FILE "/sys/class/power_supply/BAT0/status"
 
-#define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon1/temp1_input"
+#define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon0/temp1_input"
 
 int   getBattery();
 int   getBatteryStatus();
