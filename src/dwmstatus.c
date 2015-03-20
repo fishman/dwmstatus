@@ -27,6 +27,7 @@
 #define BAT_NOW_FILE "/sys/class/power_supply/BAT0/charge_now"
 #define BAT_FULL_FILE "/sys/class/power_supply/BAT0/charge_full"
 #define BAT_STATUS_FILE "/sys/class/power_supply/BAT0/status"
+#define BAT_CURRENT_FILE "/sys/class/power_supply/BAT0/current_avg"
 
 #define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon0/temp1_input"
 
@@ -44,6 +45,7 @@ char* vBar(int percent, int w, int h, char* fg_color, char* bg_color);
 int hBar(char *string, size_t size, int percent, int w, int h, char *fg_color, char *bg_color);
 int hBarBordered(char *string, size_t size, int percent, int w, int h, char *fg_color, char *bg_color, char *border_color);
 int getBatteryBar(char *string, size_t size, int w, int h);
+float getBatteryRemaining();
 void percentColorGeneric(char* string, int percent, int invert);
 
 
@@ -60,7 +62,8 @@ main(void)
   
   int cpu_percent[CPU_NBR];
   char *datetime;
-  int temp, vol, wifi, bat;
+  int temp, vol, wifi;
+  float remaining;
   char *cpu_bar[CPU_NBR];
 
   char *fg_color = "#EEEEEE";
@@ -86,7 +89,8 @@ main(void)
       datetime = getDateTime();
       getBatteryBar(bat0, 256, 30, 11);
       vol = getVolume();
-      bat = getBattery();
+      /* bat = getBattery(); */
+      remaining = getBatteryRemaining();
       getCpuUsage(cpu_percent);
       wifi = getWifiPercent();
       for(int i = 0; i < CPU_NBR; ++i)
@@ -98,7 +102,7 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [W %d] [TEMP %d%cC] [BAT %d%% %s^c%s^] %s ", 
+               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [W %d] [TEMP %d%cC] [BAT %0.2f %s^c%s^] %s ", 
              fg_color,
                vol, 
                cpu_bar[0],
@@ -108,7 +112,7 @@ main(void)
                fg_color,
                wifi,
                temp, CELSIUS_CHAR, 
-               bat,
+               remaining,
                bat0, fg_color, datetime
                );
       if(ret >= MSIZE)
@@ -240,6 +244,38 @@ getBattery()
   fclose(fd);
   
   return ((float)energy_now  / (float)energy_full) * 100;
+}
+
+float 
+getBatteryRemaining()
+{
+  FILE *fd;
+  int energy_now;
+
+  static int energy_current = -1;
+  if(energy_current == -1)
+    {
+      fd = fopen(BAT_CURRENT_FILE, "r");
+      if(fd == NULL) {
+        fprintf(stderr, "Error opening energy_full.\n");
+        return -1;
+      }
+      fscanf(fd, "%d", &energy_current);
+      fclose(fd);
+    }
+  
+  fd = fopen(BAT_NOW_FILE, "r");
+  if(fd == NULL) {
+    fprintf(stderr, "Error opening energy_now.\n");
+    return -1;
+  }
+  fscanf(fd, "%d", &energy_now);
+  fclose(fd);
+  
+  if(energy_current == 0) {
+    return 0;
+  }
+  return (float)energy_now  / (float)energy_current;
 }
 
 /** 
