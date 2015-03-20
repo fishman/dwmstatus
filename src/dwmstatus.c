@@ -59,7 +59,7 @@ main(void)
   
   int cpu_percent[CPU_NBR];
   char *datetime;
-  int temp, vol, wifi;
+  int temp, vol, wifi, bat;
   char *cpu_bar[CPU_NBR];
 
   char *fg_color = "#EEEEEE";
@@ -84,6 +84,7 @@ main(void)
       datetime = getDateTime();
       getBatteryBar(bat0, 256, 30, 11);
       vol = getVolume();
+      bat = getBattery();
       getCpuUsage(cpu_percent);
       wifi = getWifiPercent();
       for(int i = 0; i < CPU_NBR; ++i)
@@ -92,7 +93,7 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [W %d] [TEMP %d%cC] [BAT %d%% %s^c%s^] %s ", 
              fg_color,
                vol, 
                cpu_bar[0],
@@ -102,6 +103,7 @@ main(void)
                fg_color,
                wifi,
                temp, CELSIUS_CHAR, 
+               bat,
                bat0, fg_color, datetime
                );
       if(ret >= MSIZE)
