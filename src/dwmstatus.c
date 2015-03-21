@@ -45,7 +45,7 @@ char* vBar(int percent, int w, int h, char* fg_color, char* bg_color);
 int hBar(char *string, size_t size, int percent, int w, int h, char *fg_color, char *bg_color);
 int hBarBordered(char *string, size_t size, int percent, int w, int h, char *fg_color, char *bg_color, char *border_color);
 int getBatteryBar(char *string, size_t size, int w, int h);
-float getBatteryRemaining();
+double getBatteryRemaining();
 void percentColorGeneric(char* string, int percent, int invert);
 
 
@@ -63,13 +63,14 @@ main(void)
   int cpu_percent[CPU_NBR];
   char *datetime;
   int temp, vol, wifi;
-  float remaining;
   char *cpu_bar[CPU_NBR];
 
+  int  counter = 0;
+  int  cycle   = 10; /* 10 second cycle */
   char *fg_color = "#EEEEEE";
   char cpu_color[8];
 
-  char bat0[256];
+  char bat0[256] = {0};
   
   const char CELSIUS_CHAR = (char)176;
   
@@ -85,14 +86,14 @@ main(void)
    while(1)
     {
       
-      temp = getTemperature();
+      if(counter == 0) {
+        temp = getTemperature();
+        getBatteryBar(bat0, 256, 30, 11);
+        wifi = getWifiPercent();
+      }
       datetime = getDateTime();
-      getBatteryBar(bat0, 256, 30, 11);
       vol = getVolume();
-      /* bat = getBattery(); */
-      remaining = getBatteryRemaining();
       getCpuUsage(cpu_percent);
-      wifi = getWifiPercent();
       for(int i = 0; i < CPU_NBR; ++i)
       {
         percentColorGeneric(cpu_color, cpu_percent[i], 1);
@@ -102,7 +103,7 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [W %d] [TEMP %d%cC] [BAT %0.2f %s^c%s^] %s ", 
+               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [W %d] [TEMP %d%cC] %s %s ", 
              fg_color,
                vol, 
                cpu_bar[0],
@@ -112,9 +113,9 @@ main(void)
                fg_color,
                wifi,
                temp, CELSIUS_CHAR, 
-               remaining,
-               bat0, fg_color, datetime
+               bat0, datetime
                );
+      counter = (counter + 1) % cycle;
       if(ret >= MSIZE)
 	fprintf(stderr, "error: buffer too small %d/%d\n", MSIZE, ret);
 
@@ -123,7 +124,7 @@ main(void)
 	      free(cpu_bar[i]);
 
       setStatus(dpy, status);
-      sleep(1);
+      sleep(2);
     }
    
   /* USELESS
@@ -203,18 +204,29 @@ int getBatteryBar(char *string, size_t size, int w, int h)
   
   char *bg_color = "#444444";
   char *border_color = "#EEEEEE";
+  char *charging = "CHARGING";
   char fg_color[8];
-  if(getBatteryStatus())
+  char status[8];
+  double remaining = 0.0;
+  int    intpart = 0;
+  status[0] = '\0';
+  if(getBatteryStatus()) {
+    memcpy(status, charging, strlen(charging)+1);
 	  memcpy(fg_color, border_color, 8);
-  else
+  } else {
+    remaining = getBatteryRemaining();
+    intpart = (int)remaining;
+
+    snprintf(status, sizeof(status), "%d:%0d", intpart, (int)((remaining-intpart)*60));
 	  percentColor(fg_color, percent);
+  }
 
   char tmp[128];
   hBarBordered(tmp, 128, percent, w -2, h, fg_color, bg_color, border_color);
 
-  char *format = "%s^c%s^^f%d^^r0,%d,%d,%d^^f%d^";
+  char *format = "[ %s %s^c%s^^f%d^^r0,%d,%d,%d^^f%d^ ]";
   int y = (BAR_HEIGHT - 5)/2;
-  return snprintf(string, size, format, tmp, border_color, w - 2, y, 2, 5, 2);
+  return snprintf(string, size, format, status, tmp, border_color, w - 2, y, 2, 5, 2);
 }
 
 int 
@@ -246,7 +258,7 @@ getBattery()
   return ((float)energy_now  / (float)energy_full) * 100;
 }
 
-float 
+double 
 getBatteryRemaining()
 {
   FILE *fd;
@@ -272,10 +284,7 @@ getBatteryRemaining()
   fscanf(fd, "%d", &energy_now);
   fclose(fd);
   
-  if(energy_current == 0) {
-    return 0;
-  }
-  return (float)energy_now  / (float)energy_current;
+  return (double)energy_now  / (double)energy_current;
 }
 
 /** 
