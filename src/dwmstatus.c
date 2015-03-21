@@ -204,6 +204,7 @@ int getBatteryBar(char *string, size_t size, int w, int h)
   
   char *bg_color = "#444444";
   char *border_color = "#EEEEEE";
+  char *charge_color = "#7777CC";
   char *charging = "CHARGING";
   char fg_color[8];
   char status[8];
@@ -212,12 +213,12 @@ int getBatteryBar(char *string, size_t size, int w, int h)
   status[0] = '\0';
   if(getBatteryStatus()) {
     memcpy(status, charging, strlen(charging)+1);
-	  memcpy(fg_color, border_color, 8);
+	  memcpy(fg_color, charge_color, 8);
   } else {
     remaining = getBatteryRemaining();
     intpart = (int)remaining;
 
-    snprintf(status, sizeof(status), "%d:%0d", intpart, (int)((remaining-intpart)*60));
+    snprintf(status, sizeof(status), "%d:%02d", intpart, (int)((remaining-intpart)*60));
 	  percentColor(fg_color, percent);
   }
 
