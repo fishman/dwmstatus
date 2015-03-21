@@ -264,18 +264,15 @@ getBatteryRemaining()
 {
   FILE *fd;
   int energy_now;
+  int energy_current;
 
-  static int energy_current = -1;
-  if(energy_current == -1)
-    {
-      fd = fopen(BAT_CURRENT_FILE, "r");
-      if(fd == NULL) {
-        fprintf(stderr, "Error opening energy_full.\n");
-        return -1;
-      }
-      fscanf(fd, "%d", &energy_current);
-      fclose(fd);
-    }
+  fd = fopen(BAT_CURRENT_FILE, "r");
+  if(fd == NULL) {
+    fprintf(stderr, "Error opening energy_full.\n");
+    return -1;
+  }
+  fscanf(fd, "%d", &energy_current);
+  fclose(fd);
   
   fd = fopen(BAT_NOW_FILE, "r");
   if(fd == NULL) {
